@@ -1,0 +1,604 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --font-size: 16px;
+  --background: #0a0a0b;
+  --foreground: #f0f0f2;
+  --card: #131316;
+  --card-foreground: #f0f0f2;
+  --popover: #131316;
+  --popover-foreground: #f0f0f2;
+  --primary: #00fa64;
+  --primary-foreground: #0a0a0b;
+  --secondary: #1c1c21;
+  --secondary-foreground: #f0f0f2;
+  --muted: #1c1c21;
+  --muted-foreground: #8a8a99;
+  --accent-css: #00fa64;
+  --accent: #00fa64;
+  --accent-rgb: 0, 250, 100;
+  --accent-dark: #00cc50;
+  --accent-foreground: #0a0a0b;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.08);
+  --input-background: #1c1c21;
+  --switch-background: #2a2a32;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: #00fa64;
+  --chart-1: #00fa64;
+  --chart-2: #22c55e;
+  --chart-3: #3b82f6;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+  --radius: 0.75rem;
+  --sidebar: #0e0e10;
+  --sidebar-foreground: #f0f0f2;
+  --sidebar-primary: #00fa64;
+  --sidebar-primary-foreground: #0a0a0b;
+  --sidebar-accent: #1c1c21;
+  --sidebar-accent-foreground: #f0f0f2;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-ring: #00fa64;
+
+  /* Theme semantic vars (JS-controlled) */
+  --bg-base: #0a0a0b;
+  --bg-surface: #0e0e10;
+  --bg-card: #131316;
+  --bg-input: #1c1c21;
+  --bg-sidebar: #0e0e10;
+  --bg-sidebar-alt: #0d0d10;
+  --bg-hover: rgba(255,255,255,0.04);
+  --bg-hover-strong: rgba(255,255,255,0.06);
+  --text-primary: #ffffff;
+  --text-secondary: #8a8a99;
+  --text-muted: #5a5a6e;
+  --border-default: rgba(255,255,255,0.08);
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-extra-subtle: rgba(255,255,255,0.04);
+  --border-strong: rgba(255,255,255,0.12);
+  --shadow-card: none;
+  --scrollbar-thumb: rgba(255,255,255,0.1);
+  --invert-icon: 1;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent-css);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-brand: var(--accent);
+  --color-brand-dark: var(--accent-dark);
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  html {
+    font-size: var(--font-size);
+  }
+
+  h1 {
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+  }
+
+  input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+  }
+
+  /* Hide number input spinners */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  /* Style date inputs */
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(var(--invert-icon));
+    opacity: 0.5;
+    cursor: pointer;
+  }
+
+  /* Style native select elements */
+  select {
+    background-color: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+  }
+  select option {
+    background-color: var(--bg-input);
+    color: var(--text-primary);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+  }
+}
+
+/* ================================================================
+   LIGHT MODE OVERRIDES
+   Targets Tailwind arbitrary-value classes to swap dark colors
+   ================================================================ */
+
+/* --- Backgrounds --- */
+[data-theme="light"] .bg-\[\#0a0a0b\],
+[data-theme="light"] .bg-\[\#0a0a0b\]\/80 {
+  background-color: var(--bg-base) !important;
+}
+[data-theme="light"] .bg-\[\#131316\] {
+  background-color: var(--bg-card) !important;
+  box-shadow: var(--shadow-card);
+}
+[data-theme="light"] .bg-\[\#1c1c21\] {
+  background-color: var(--bg-input) !important;
+}
+[data-theme="light"] .bg-\[\#0e0e10\] {
+  background-color: var(--bg-sidebar) !important;
+}
+[data-theme="light"] .bg-\[\#0d0d10\] {
+  background-color: var(--bg-sidebar-alt) !important;
+}
+[data-theme="light"] .bg-\[\#1a1a1f\] {
+  background-color: var(--bg-input) !important;
+}
+[data-theme="light"] .bg-\[\#16161a\] {
+  background-color: var(--bg-card) !important;
+}
+[data-theme="light"] .bg-\[\#111114\] {
+  background-color: var(--bg-base) !important;
+}
+
+/* Hover backgrounds */
+[data-theme="light"] .hover\:bg-white\/\[0\.04\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.06\]:hover,
+[data-theme="light"] .hover\:bg-white\/\[0\.08\]:hover {
+  background-color: var(--bg-hover-strong) !important;
+}
+
+/* White bg with opacity */
+[data-theme="light"] .bg-white\/\[0\.02\],
+[data-theme="light"] .bg-white\/\[0\.03\],
+[data-theme="light"] .bg-white\/\[0\.04\] {
+  background-color: rgba(0,0,0,0.02) !important;
+}
+[data-theme="light"] .bg-white\/\[0\.06\],
+[data-theme="light"] .bg-white\/\[0\.08\] {
+  background-color: rgba(0,0,0,0.04) !important;
+}
+[data-theme="light"] .hover\:bg-white\/\[0\.1\]:hover,
+[data-theme="light"] .bg-white\/\[0\.1\] {
+  background-color: rgba(0,0,0,0.06) !important;
+}
+
+/* --- Text --- */
+[data-theme="light"] .text-white {
+  color: var(--text-primary) !important;
+}
+[data-theme="light"] .text-\[\#8a8a99\] {
+  color: var(--text-secondary) !important;
+}
+[data-theme="light"] .text-white\/60,
+[data-theme="light"] .text-white\/70,
+[data-theme="light"] .text-white\/80 {
+  color: var(--text-secondary) !important;
+}
+[data-theme="light"] .text-white\/\[0\.1\] {
+  color: rgba(0,0,0,0.1) !important;
+}
+
+/* Placeholder */
+[data-theme="light"] .placeholder-\[\#8a8a99\]::placeholder {
+  color: var(--text-muted) !important;
+}
+[data-theme="light"] .placeholder-white\/30::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Hover text */
+[data-theme="light"] .hover\:text-white:hover {
+  color: var(--text-primary) !important;
+}
+[data-theme="light"] .group:hover .group-hover\:text-white,
+[data-theme="light"] .group\/card:hover .group-hover\/card\:text-white {
+  color: var(--text-primary) !important;
+}
+
+/* --- Borders --- */
+[data-theme="light"] .border-white\/\[0\.04\],
+[data-theme="light"] .border-white\/\[0\.03\] {
+  border-color: var(--border-extra-subtle) !important;
+}
+[data-theme="light"] .border-white\/\[0\.06\] {
+  border-color: var(--border-subtle) !important;
+}
+[data-theme="light"] .border-white\/\[0\.08\] {
+  border-color: var(--border-default) !important;
+}
+[data-theme="light"] .border-white\/\[0\.1\],
+[data-theme="light"] .border-white\/\[0\.12\] {
+  border-color: var(--border-strong) !important;
+}
+[data-theme="light"] .hover\:border-white\/\[0\.1\]:hover,
+[data-theme="light"] .hover\:border-white\/\[0\.15\]:hover {
+  border-color: var(--border-strong) !important;
+}
+
+/* Ring */
+[data-theme="light"] .ring-white\/\[0\.08\],
+[data-theme="light"] .ring-white\/\[0\.06\] {
+  --tw-ring-color: var(--border-default) !important;
+}
+
+/* Focus border */
+[data-theme="light"] .focus\:border-\[\#FF0074\]\/40:focus {
+  border-color: rgba(var(--accent-rgb), 0.4) !important;
+}
+
+/* Divide */
+[data-theme="light"] .divide-white\/\[0\.04\] > :not([hidden]) ~ :not([hidden]),
+[data-theme="light"] .divide-white\/\[0\.06\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-subtle) !important;
+}
+
+/* --- Backdrop / Overlays --- */
+[data-theme="light"] .backdrop-blur-xl {
+  background-color: rgba(244,245,249,0.85) !important;
+}
+
+/* --- Gradients --- */
+[data-theme="light"] .from-\[\#0a0a0b\] {
+  --tw-gradient-from: var(--bg-base) !important;
+}
+[data-theme="light"] .to-\[\#131316\] {
+  --tw-gradient-to: var(--bg-card) !important;
+}
+
+/* ================================================================
+   ACCENT COLOR OVERRIDES
+   Maps hardcoded #FF0074 to dynamic --accent
+   ================================================================ */
+
+/* Text accent */
+[data-accent] .text-\[\#FF0074\] {
+  color: var(--accent) !important;
+}
+[data-accent] .hover\:text-\[\#FF0074\]:hover {
+  color: var(--accent) !important;
+}
+[data-accent] .text-\[\#FF0074\]\/80 {
+  color: rgba(var(--accent-rgb), 0.8) !important;
+}
+[data-accent] .hover\:text-\[\#FF0074\]\/80:hover {
+  color: rgba(var(--accent-rgb), 0.8) !important;
+}
+
+/* Background accent - solid */
+[data-accent] .bg-\[\#FF0074\] {
+  background-color: var(--accent) !important;
+}
+[data-accent] .hover\:bg-\[\#FF0074\]:hover {
+  background-color: var(--accent) !important;
+}
+[data-accent] .bg-\[\#FF0074\]\/90,
+[data-accent] .hover\:bg-\[\#FF0074\]\/90:hover {
+  background-color: rgba(var(--accent-rgb), 0.9) !important;
+}
+
+/* Background accent - transparent variants */
+[data-accent] .bg-\[\#FF0074\]\/5,
+[data-accent] .hover\:bg-\[\#FF0074\]\/5:hover {
+  background-color: rgba(var(--accent-rgb), 0.05) !important;
+}
+[data-accent] .bg-\[\#FF0074\]\/10,
+[data-accent] .hover\:bg-\[\#FF0074\]\/10:hover {
+  background-color: rgba(var(--accent-rgb), 0.1) !important;
+}
+[data-accent] .bg-\[\#FF0074\]\/15,
+[data-accent] .hover\:bg-\[\#FF0074\]\/15:hover {
+  background-color: rgba(var(--accent-rgb), 0.15) !important;
+}
+[data-accent] .bg-\[\#FF0074\]\/20,
+[data-accent] .hover\:bg-\[\#FF0074\]\/20:hover {
+  background-color: rgba(var(--accent-rgb), 0.2) !important;
+}
+
+/* Background accent - bracket opacity variants */
+[data-accent] .bg-\[\#FF0074\]\/\[0\.02\] {
+  background-color: rgba(var(--accent-rgb), 0.02) !important;
+}
+[data-accent] .bg-\[\#FF0074\]\/\[0\.03\] {
+  background-color: rgba(var(--accent-rgb), 0.03) !important;
+}
+[data-accent] .bg-\[\#ff0074\]\/5,
+[data-accent] .hover\:bg-\[\#ff0074\]\/5:hover {
+  background-color: rgba(var(--accent-rgb), 0.05) !important;
+}
+
+/* Border accent */
+[data-accent] .border-\[\#FF0074\] {
+  border-color: var(--accent) !important;
+}
+[data-accent] .border-\[\#FF0074\]\/15 {
+  border-color: rgba(var(--accent-rgb), 0.15) !important;
+}
+[data-accent] .border-\[\#FF0074\]\/20 {
+  border-color: rgba(var(--accent-rgb), 0.2) !important;
+}
+[data-accent] .border-\[\#FF0074\]\/30,
+[data-accent] .hover\:border-\[\#FF0074\]\/30:hover {
+  border-color: rgba(var(--accent-rgb), 0.3) !important;
+}
+[data-accent] .border-\[\#FF0074\]\/40,
+[data-accent] .hover\:border-\[\#FF0074\]\/40:hover {
+  border-color: rgba(var(--accent-rgb), 0.4) !important;
+}
+
+/* Ring accent */
+[data-accent] .ring-\[\#FF0074\],
+[data-accent] .ring-\[\#FF0074\]\/30 {
+  --tw-ring-color: rgba(var(--accent-rgb), 0.3) !important;
+}
+
+/* Gradient accent */
+[data-accent] .from-\[\#FF0074\]\/5 {
+  --tw-gradient-from: rgba(var(--accent-rgb), 0.05) !important;
+}
+[data-accent] .from-\[\#FF0074\]\/10 {
+  --tw-gradient-from: rgba(var(--accent-rgb), 0.1) !important;
+}
+[data-accent] .from-\[\#FF0074\]\/20 {
+  --tw-gradient-from: rgba(var(--accent-rgb), 0.2) !important;
+}
+
+/* ================================================================
+   LIGHT MODE - Sidebar specific
+   ================================================================ */
+[data-theme="light"] nav,
+[data-theme="light"] aside {
+  border-color: var(--border-default);
+}
+
+/* Light mode - Recharts overrides */
+[data-theme="light"] .recharts-cartesian-grid line {
+  stroke: rgba(0,0,0,0.06) !important;
+}
+[data-theme="light"] .recharts-text {
+  fill: var(--text-secondary) !important;
+}
+
+/* Light mode - scrollbar in body */
+[data-theme="light"] ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+[data-theme="light"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.12);
+  border-radius: 4px;
+}
+
+/* Light mode - invert black overlay for modals */
+[data-theme="light"] .bg-black\/50 {
+  background-color: rgba(0,0,0,0.3) !important;
+}
+[data-theme="light"] .bg-black\/60 {
+  background-color: rgba(0,0,0,0.35) !important;
+}
+[data-theme="light"] .bg-black\/70 {
+  background-color: rgba(0,0,0,0.4) !important;
+}
+
+/* ================================================================
+   COMBINED - Light mode accent color fix for inline styles
+   ================================================================ */
+[data-theme="light"] .shadow-xl,
+[data-theme="light"] .shadow-2xl {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04) !important;
+}
+[data-theme="light"] .shadow-lg {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+}
+
+/* ================================================================
+   ACCENT OVERRIDES - lowercase #ff0074 variants (sidebar etc.)
+   ================================================================ */
+[data-accent] .bg-\[\#ff0074\] {
+  background-color: var(--accent) !important;
+}
+[data-accent] .bg-\[\#ff0074\]\/10 {
+  background-color: rgba(var(--accent-rgb), 0.1) !important;
+}
+[data-accent] .text-\[\#ff0074\] {
+  color: var(--accent) !important;
+}
+[data-accent] .hover\:bg-\[\#ff0074\]\/10:hover {
+  background-color: rgba(var(--accent-rgb), 0.1) !important;
+}
+[data-accent] .border-\[\#ff0074\]\/20 {
+  border-color: rgba(var(--accent-rgb), 0.2) !important;
+}
+[data-accent] .border-\[\#ff0074\]\/15 {
+  border-color: rgba(var(--accent-rgb), 0.15) !important;
+}
+[data-accent] .from-\[\#ff0074\]\/10 {
+  --tw-gradient-from: rgba(var(--accent-rgb), 0.1) !important;
+}
+
+/* Sidebar light mode - extra fix for border-r */
+[data-theme="light"] .border-r {
+  border-color: var(--border-default) !important;
+}
+
+/* Light mode - white/30 opacity used in active indicator */
+[data-theme="light"] .bg-\[\#ffffff\]\/30 {
+  background-color: rgba(255,255,255,0.5) !important;
+}
+
+/* Accent shadow overrides */
+[data-accent] .shadow-\[\#FF0074\]\/20 {
+  --tw-shadow-color: rgba(var(--accent-rgb), 0.2) !important;
+}
+[data-accent] .shadow-\[\#FF0074\]\/10 {
+  --tw-shadow-color: rgba(var(--accent-rgb), 0.1) !important;
+}
+
+/* Light mode - keep active nav link text readable on accent bg */
+[data-theme="light"] .bg-\[\#ff0074\] .text-\[\#ffffff\],
+[data-theme="light"] .bg-\[\#ff0074\] .text-white,
+[data-theme="light"] .bg-\[\#FF0074\] .text-white {
+  color: #0a0a0b !important;
+}
+
+/* Ensure button text stays readable on accent bg in light mode */
+[data-theme="light"] .bg-\[\#FF0074\],
+[data-theme="light"] .bg-\[\#ff0074\] {
+  color: #0a0a0b !important;
+}
+
+/* Light mode - keep spinner borders visible */
+[data-theme="light"] .border-t-white {
+  border-top-color: var(--text-primary) !important;
+}
+
+/* Light mode - placeholder text in inputs */
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Light mode - border-b variants */
+[data-theme="light"] .border-b {
+  border-bottom-color: var(--border-extra-subtle) !important;
+}
+
+/* Light mode - ensure sidebar shadow for separation */
+[data-theme="light"] aside {
+  box-shadow: 2px 0 8px rgba(0,0,0,0.04) !important;
+}
+
+/* ================================================================
+   ACCENT #00FA64 GREEN — direct class overrides (for hardcoded green usages)
+   ================================================================ */
+[data-accent] .text-\[\#00FA64\] {
+  color: var(--accent) !important;
+}
+[data-accent] .bg-\[\#00FA64\] {
+  background-color: var(--accent) !important;
+}
+[data-accent] .border-\[\#00FA64\] {
+  border-color: var(--accent) !important;
+}
+
+/* ================================================================
+   ACCENT FOREGROUND — Ensures readable text on accent-colored elements
+   Text and children of accent-bg elements should use --accent-foreground
+   ================================================================ */
+[data-accent] .bg-\[\#FF0074\],
+[data-accent] .bg-\[\#ff0074\] {
+  color: var(--accent-foreground) !important;
+}
+[data-accent] .bg-\[\#FF0074\] .text-\[\#ffffff\],
+[data-accent] .bg-\[\#FF0074\] .text-white,
+[data-accent] .bg-\[\#ff0074\] .text-\[\#ffffff\],
+[data-accent] .bg-\[\#ff0074\] .text-white {
+  color: var(--accent-foreground) !important;
+}
+/* Nav icon SVG inside active accent item */
+[data-accent] .bg-\[\#FF0074\] svg,
+[data-accent] .bg-\[\#ff0074\] svg {
+  color: var(--accent-foreground) !important;
+}
