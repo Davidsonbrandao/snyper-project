@@ -17,7 +17,7 @@ import { usePermissions } from "../lib/permissions-context";
 import { NoAccessPage, ReadOnlyBadge } from "./permission-gate";
 import { CustomSelect } from "./ui/custom-select";
 import { DatePickerInput } from "./ui/date-picker-input";
-import { apiFetch } from "../lib/supabase";
+import { apiFetch } from "../lib/api";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";

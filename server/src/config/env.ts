@@ -6,27 +6,18 @@ loadEnv();
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.coerce.number().int().positive().default(3001),
-  ALLOWED_ORIGINS: z.string().default("http://localhost:5173"),
+  ALLOWED_ORIGINS: z.string().default("http://localhost:5173,http://localhost:3000"),
   APP_NAME: z.string().default("Snyper API"),
   APP_URL: z.string().url().default("http://localhost:5173"),
-  DATABASE_URL: z.string().min(1).optional(),
-  JWT_SECRET: z.string().min(16).optional(),
-  SMTP_HOST: z.string().optional(),
-  SMTP_PORT: z.coerce.number().int().positive().optional(),
-  SMTP_USER: z.string().optional(),
-  SMTP_PASS: z.string().optional(),
-  SMTP_FROM: z.string().optional(),
-  STORAGE_ENDPOINT: z.string().optional(),
-  STORAGE_ACCESS_KEY: z.string().optional(),
-  STORAGE_SECRET_KEY: z.string().optional(),
-  STORAGE_BUCKET: z.string().optional(),
-  SUPABASE_URL: z.string().url().optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
-  SUPABASE_ANON_KEY: z.string().optional(),
-  SUPABASE_DELIVERABLES_BUCKET: z
-    .string()
-    .default("make-bd920daa-deliverables"),
-  SUPABASE_KV_TABLE: z.string().default("kv_store_bd920daa"),
+  API_URL: z.string().url().default("http://localhost:3001"),
+  DATA_DIR: z.string().default("data"),
+  UPLOAD_DIR: z.string().default("data/uploads"),
+  BOOTSTRAP_ORG_ID: z.string().default("snyper"),
+  BOOTSTRAP_ADMIN_EMAIL: z.string().email().optional(),
+  BOOTSTRAP_ADMIN_PASSWORD: z.string().min(8).optional(),
+  BOOTSTRAP_ADMIN_NAME: z.string().optional(),
+  SESSION_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  INVITE_TTL_DAYS: z.coerce.number().int().positive().default(7),
 });
 
 const parsed = envSchema.safeParse(process.env);

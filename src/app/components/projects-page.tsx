@@ -27,7 +27,7 @@ import { usePermissions } from "../lib/permissions-context";
 import { NoAccessPage, ReadOnlyBadge } from "./permission-gate";
 import { toast } from "sonner";
 import { useNotifications } from "../lib/notification-context";
-import { apiFetchUpload, apiFetch } from "../lib/supabase";
+import { apiFetchUpload, apiFetch } from "../lib/api";
 
 const COLUMN_COLORS = [
   "#8a8a99", "#3b82f6", "#f59e0b", "#8b5cf6", "#22c55e", "#ef4444",

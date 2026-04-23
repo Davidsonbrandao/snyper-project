@@ -1,4 +1,4 @@
-import { kvGet } from "./kv.js";
+import { findUserById, getKvValue } from "./state.js";
 
 export function orgFinanceKey(orgId: string) {
   return `finance_data_org_${orgId}`;
@@ -65,7 +65,12 @@ export function legacyTeamKey(userId: string) {
 }
 
 export async function resolveOrgId(userId: string) {
-  const mapping = await kvGet(`user_org_${userId}`);
+  const user = await findUserById(userId);
+  if (user?.orgId) {
+    return user.orgId;
+  }
+
+  const mapping = await getKvValue(`user_org_${userId}`);
   if (mapping && typeof mapping === "string") {
     return mapping;
   }

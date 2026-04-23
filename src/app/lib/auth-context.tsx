@@ -1,12 +1,25 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { supabase } from "./supabase";
-import type { User, Session } from "@supabase/supabase-js";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { apiFetch } from "./api";
+import {
+  clearStoredSession,
+  getStoredSession,
+  setStoredSession,
+  type AppSession,
+  type AppUser,
+} from "./session";
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: AppUser | null;
+  session: AppSession | null;
   loading: boolean;
-  signInWithOtp: (email: string) => Promise<{ error: string | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  acceptInvite: (inviteToken: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -14,32 +27,43 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [session, setSession] = useState<AppSession | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const applySession = useCallback((nextSession: AppSession | null) => {
+    setSession(nextSession);
+    setUser(nextSession?.user ?? null);
+    setStoredSession(nextSession);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
 
     const bootstrap = async () => {
+      const stored = getStoredSession();
+      if (!stored) {
+        if (mounted) setLoading(false);
+        return;
+      }
+
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const me = await apiFetch("/auth/me", {
+          headers: {
+            Authorization: `Bearer ${stored.access_token}`,
+            "X-User-Token": stored.access_token,
+          },
+        });
 
         if (!mounted) return;
-
-        if (error) {
-          console.error("Session error:", error.message);
+        applySession(me.session || stored);
+      } catch (error) {
+        console.error("Failed to restore session:", error);
+        clearStoredSession();
+        if (mounted) {
           setSession(null);
           setUser(null);
-        } else {
-          setSession(data.session ?? null);
-          setUser(data.session?.user ?? null);
         }
-      } catch (err) {
-        if (!mounted) return;
-        console.error("Failed to get session:", err);
-        setSession(null);
-        setUser(null);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -47,79 +71,98 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     bootstrap();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      if (!mounted) return;
-      setSession(nextSession ?? null);
-      setUser(nextSession?.user ?? null);
-      setLoading(false);
-    });
-
     return () => {
       mounted = false;
-      subscription.unsubscribe();
     };
-  }, []);
+  }, [applySession]);
 
-  const signInWithOtp = useCallback(async (email: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     try {
-      const appUrl = import.meta.env.VITE_APP_URL?.trim() || window.location.origin;
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false,
-          emailRedirectTo: `${appUrl}/auth/confirm`,
-        },
+      const result = await apiFetch("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email,
+          password,
+        }),
       });
 
-      if (error) {
-        const message = error.message || "";
-
-        if (message.includes("Signups not allowed") || message.includes("user not found")) {
-          return { error: "Este e-mail não está autorizado. Solicite acesso ao administrador." };
-        }
-
-        if (message.toLowerCase().includes("rate limit") || message.includes("Muitas tentativas")) {
-          return { error: "Muitas tentativas. Aguarde um pouco e tente novamente." };
-        }
-
-        return { error: message || "Falha ao enviar link de acesso" };
-      }
-
+      applySession(result.session);
       return { error: null };
     } catch (err: any) {
-      console.error("Error in signInWithOtp:", err);
-
-      if (err?.name === "AbortError" || err?.message === "Failed to fetch") {
-        return { error: "Erro de conexão. Verifique sua internet e tente novamente." };
-      }
-
-      return { error: err?.message || "Erro desconhecido durante o login" };
+      console.error("Error in signIn:", err);
+      return {
+        error:
+          err?.message ||
+          "Nao foi possivel entrar. Verifique seus dados e tente novamente.",
+      };
     }
-  }, []);
+  }, [applySession]);
+
+  const acceptInvite = useCallback(async (inviteToken: string) => {
+    try {
+      const result = await apiFetch("/auth/accept-invite", {
+        method: "POST",
+        body: JSON.stringify({
+          inviteToken,
+        }),
+      });
+
+      applySession(result.session);
+      return { error: null };
+    } catch (err: any) {
+      console.error("Error in acceptInvite:", err);
+      return {
+        error: err?.message || "Nao foi possivel ativar o convite.",
+      };
+    }
+  }, [applySession]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setSession(null);
-  }, []);
+    const currentToken = session?.access_token;
+
+    try {
+      if (currentToken) {
+        await apiFetch("/auth/logout", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+            "X-User-Token": currentToken,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("Error signing out:", error);
+    } finally {
+      clearStoredSession();
+      setUser(null);
+      setSession(null);
+    }
+  }, [session?.access_token]);
 
   const refreshUser = useCallback(async () => {
-    const { data, error } = await supabase.auth.getUser();
+    const currentToken = session?.access_token || getStoredSession()?.access_token;
 
-    if (error) {
-      throw error;
+    if (!currentToken) {
+      setUser(null);
+      setSession(null);
+      clearStoredSession();
+      return;
     }
 
-    setUser(data.user ?? null);
-    setSession((current) =>
-      current && data.user ? { ...current, user: data.user } : current,
-    );
-  }, []);
+    const result = await apiFetch("/auth/me", {
+      headers: {
+        Authorization: `Bearer ${currentToken}`,
+        "X-User-Token": currentToken,
+      },
+    });
+
+    applySession(result.session);
+  }, [applySession, session?.access_token]);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signInWithOtp, signOut, refreshUser }}>
+    <AuthContext.Provider
+      value={{ user, session, loading, signIn, acceptInvite, signOut, refreshUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -133,7 +176,8 @@ export function useAuth() {
       user: null,
       session: null,
       loading: true,
-      signInWithOtp: async () => ({ error: "Auth não disponível" as string | null }),
+      signIn: async () => ({ error: "Auth nao disponivel" as string | null }),
+      acceptInvite: async () => ({ error: "Auth nao disponivel" as string | null }),
       signOut: async () => {},
       refreshUser: async () => {},
     } as AuthContextType;

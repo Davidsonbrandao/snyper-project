@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { User, Mail, Phone, Camera, Save, X, Check, Shield, Key, Globe, Sun, Moon, Palette, Monitor } from "lucide-react";
 import { useAuth } from "../lib/auth-context";
-import { apiFetch } from "../lib/supabase";
+import { apiFetch } from "../lib/api";
 import { useTheme, ACCENT_PRESETS, type ThemeMode } from "../lib/theme-context";
 
 export function ProfilePage() {

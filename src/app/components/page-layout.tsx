@@ -15,8 +15,10 @@ import { SetupBanner } from "./setup-banner";
 import { OnboardingGuide } from "./onboarding-guide";
 
 export function PageLayout() {
-  const { user, loading, signInWithOtp } = useAuth();
+  const { user, loading, signIn, acceptInvite } = useAuth();
   const sidebarWidth = useSidebarWidth();
+  const inviteToken = new URLSearchParams(window.location.search).get("invite") || undefined;
+  const inviteEmail = new URLSearchParams(window.location.search).get("email") || undefined;
 
   // Loading state
   if (loading) {
@@ -32,7 +34,14 @@ export function PageLayout() {
 
   // Auth gate - show login if not authenticated
   if (!user) {
-    return <LoginPage onSignIn={signInWithOtp} />;
+    return (
+      <LoginPage
+        onSignIn={signIn}
+        onAcceptInvite={acceptInvite}
+        inviteToken={inviteToken}
+        inviteEmail={inviteEmail}
+      />
+    );
   }
 
   return (

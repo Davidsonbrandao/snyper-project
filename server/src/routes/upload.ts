@@ -1,8 +1,17 @@
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { Hono } from "hono";
 import { env } from "../config/env.js";
 import { getAuthUser } from "../lib/auth.js";
-import { getSupabaseAdminClient } from "../lib/supabase.js";
 import { resolveOrgId } from "../lib/tenant.js";
+import {
+  createInviteToken,
+  deleteUploadRecord,
+  getUploadFilePath,
+  getUploadRecord,
+  hashInviteToken,
+  saveUpload,
+} from "../lib/state.js";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const SIGNED_URL_TTL_SECONDS = 60 * 60 * 24 * 7;
@@ -31,7 +40,65 @@ function buildStoragePath(orgId: string, fileName: string) {
   return `${orgId}/${timestamp}_${randomSuffix}.${extension}`;
 }
 
+function createPublicFileUrl(storagePath: string, token: string) {
+  return `${env.API_URL}/upload/file?path=${encodeURIComponent(storagePath)}&token=${encodeURIComponent(token)}`;
+}
+
+function getContentType(fileName: string, mimeType: string) {
+  if (mimeType) return mimeType;
+  const extension = path.extname(fileName).toLowerCase();
+  if (extension === ".pdf") return "application/pdf";
+  if (extension === ".png") return "image/png";
+  if (extension === ".jpg" || extension === ".jpeg") return "image/jpeg";
+  if (extension === ".gif") return "image/gif";
+  if (extension === ".webp") return "image/webp";
+  return "application/octet-stream";
+}
+
+function isValidToken(token: unknown): token is string {
+  return typeof token === "string" && token.trim().length > 0;
+}
+
 export const uploadRoute = new Hono();
+
+uploadRoute.get("/file", async (c) => {
+  try {
+    const storagePath = c.req.query("path");
+    const token = c.req.query("token");
+
+    if (!isValidStoragePath(storagePath) || !isValidToken(token)) {
+      return c.json({ error: "Arquivo ou token invalidos" }, 400);
+    }
+
+    const record = await getUploadRecord(storagePath);
+    if (!record) {
+      return c.json({ error: "Arquivo nao encontrado" }, 404);
+    }
+
+    if (record.tokenExpiresAt && new Date(record.tokenExpiresAt).getTime() <= Date.now()) {
+      return c.json({ error: "Token expirado" }, 403);
+    }
+
+    if (record.tokenHash !== hashInviteToken(token)) {
+      return c.json({ error: "Token invalido" }, 403);
+    }
+
+    const filePath = getUploadFilePath(storagePath);
+    const file = await readFile(filePath);
+
+    return new Response(file, {
+      headers: {
+        "Content-Type": getContentType(record.fileName, record.mimeType),
+        "Content-Length": String(file.byteLength),
+        "Content-Disposition": `inline; filename="${record.fileName}"`,
+        "Cache-Control": "private, max-age=60",
+      },
+    });
+  } catch (error) {
+    console.error("Upload file route error:", error);
+    return c.json({ error: "Falha ao abrir arquivo" }, 500);
+  }
+});
 
 uploadRoute.post("/deliverable", async (c) => {
   const user = await getAuthUser(c);
@@ -67,38 +134,30 @@ uploadRoute.post("/deliverable", async (c) => {
     }
 
     const storagePath = buildStoragePath(orgId, fileEntry.name);
-    const supabase = getSupabaseAdminClient();
+    const filePath = getUploadFilePath(storagePath);
+    await mkdir(path.dirname(filePath), { recursive: true });
+
     const arrayBuffer = await fileEntry.arrayBuffer();
+    await writeFile(filePath, Buffer.from(arrayBuffer));
 
-    const { error: uploadError } = await supabase.storage
-      .from(env.SUPABASE_DELIVERABLES_BUCKET)
-      .upload(storagePath, arrayBuffer, {
-        contentType: fileEntry.type,
-        upsert: false,
-      });
+    const token = createInviteToken();
+    const tokenExpiresAt = new Date(
+      Date.now() + SIGNED_URL_TTL_SECONDS * 1000,
+    ).toISOString();
 
-    if (uploadError) {
-      console.error("Upload deliverable error:", uploadError);
-      return c.json(
-        { error: `Erro ao fazer upload: ${uploadError.message}` },
-        500,
-      );
-    }
-
-    const { data: signedData, error: signError } = await supabase.storage
-      .from(env.SUPABASE_DELIVERABLES_BUCKET)
-      .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
-
-    if (signError) {
-      console.error("Create signed URL error:", signError);
-      return c.json(
-        { error: `Erro ao gerar URL: ${signError.message}` },
-        500,
-      );
-    }
+    await saveUpload({
+      orgId,
+      storagePath,
+      fileName: fileEntry.name,
+      mimeType: fileEntry.type,
+      fileSize: fileEntry.size,
+      createdAt: new Date().toISOString(),
+      tokenHash: hashInviteToken(token),
+      tokenExpiresAt,
+    });
 
     return c.json({
-      url: signedData.signedUrl,
+      url: createPublicFileUrl(storagePath, token),
       storagePath,
       fileName: fileEntry.name,
       fileSize: fileEntry.size,
@@ -131,16 +190,23 @@ uploadRoute.post("/refresh-url", async (c) => {
       return c.json({ error: "Acesso negado a este arquivo" }, 403);
     }
 
-    const supabase = getSupabaseAdminClient();
-    const { data, error } = await supabase.storage
-      .from(env.SUPABASE_DELIVERABLES_BUCKET)
-      .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
-
-    if (error) {
-      return c.json({ error: `Erro ao renovar URL: ${error.message}` }, 500);
+    const record = await getUploadRecord(storagePath);
+    if (!record) {
+      return c.json({ error: "Arquivo nao encontrado" }, 404);
     }
 
-    return c.json({ url: data.signedUrl });
+    const token = createInviteToken();
+    const tokenExpiresAt = new Date(
+      Date.now() + SIGNED_URL_TTL_SECONDS * 1000,
+    ).toISOString();
+
+    await saveUpload({
+      ...record,
+      tokenHash: hashInviteToken(token),
+      tokenExpiresAt,
+    });
+
+    return c.json({ url: createPublicFileUrl(storagePath, token) });
   } catch (error) {
     console.error("Refresh deliverable URL error:", error);
     return c.json({ error: `Erro: ${error}` }, 500);
@@ -168,17 +234,9 @@ uploadRoute.delete("/deliverable", async (c) => {
       return c.json({ error: "Acesso negado a este arquivo" }, 403);
     }
 
-    const supabase = getSupabaseAdminClient();
-    const { error } = await supabase.storage
-      .from(env.SUPABASE_DELIVERABLES_BUCKET)
-      .remove([storagePath]);
-
-    if (error) {
-      return c.json(
-        { error: `Erro ao excluir arquivo: ${error.message}` },
-        500,
-      );
-    }
+    const filePath = getUploadFilePath(storagePath);
+    await rm(filePath, { force: true });
+    await deleteUploadRecord(storagePath);
 
     return c.json({ success: true });
   } catch (error) {

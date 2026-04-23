@@ -1,37 +1,49 @@
 import type { Context } from "hono";
-import { getSupabaseAdminClient } from "./supabase.js";
+import { findSessionByToken, findUserById } from "./state.js";
 
 export interface AuthUser {
   id: string;
   email?: string;
-  name?: string;
-  userMetadata?: Record<string, unknown>;
+  created_at?: string;
+  last_sign_in_at?: string | null;
+  user_metadata?: Record<string, unknown>;
+  role?: "superadmin" | "admin" | "member";
+  orgId?: string;
+  status?: "active" | "invited" | "disabled";
+}
+
+function getAccessToken(c: Context) {
+  return (
+    c.req.header("X-User-Token") ||
+    c.req.header("Authorization")?.replace(/^Bearer\s+/i, "")
+  );
 }
 
 export async function getAuthUser(c: Context): Promise<AuthUser | null> {
-  const accessToken =
-    c.req.header("X-User-Token") ||
-    c.req.header("Authorization")?.replace(/^Bearer\s+/i, "");
-
+  const accessToken = getAccessToken(c);
   if (!accessToken) {
     return null;
   }
 
-  const supabase = getSupabaseAdminClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser(accessToken);
+  const session = await findSessionByToken(accessToken);
+  if (!session) {
+    return null;
+  }
 
-  if (error || !user) {
+  const storedUser = await findUserById(session.userId);
+  if (!storedUser || storedUser.status === "disabled") {
     return null;
   }
 
   return {
-    id: user.id,
-    email: user.email,
-    name: typeof user.user_metadata?.name === "string" ? user.user_metadata.name : undefined,
-    userMetadata: user.user_metadata ?? {},
+    id: storedUser.id,
+    email: storedUser.email,
+    created_at: storedUser.createdAt,
+    last_sign_in_at: storedUser.lastSignInAt ?? null,
+    user_metadata: storedUser.userMetadata ?? {},
+    role: storedUser.role,
+    orgId: storedUser.orgId,
+    status: storedUser.status,
   };
 }
 

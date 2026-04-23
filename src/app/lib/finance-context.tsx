@@ -11,7 +11,7 @@ import {
   defaultProjects, defaultProjectColumns,
   generateId,
 } from "./finance-data";
-import { apiFetch } from "./supabase";
+import { apiFetch } from "./api";
 import { useAuth } from "./auth-context";
 
 interface FinanceContextType {

@@ -147,8 +147,14 @@ function PublicOnly() {
 }
 
 function LoginRoute() {
-  const { signInWithOtp } = useAuth();
-  return React.createElement(LoginPageRoute, { onSignIn: signInWithOtp });
+  const { signIn, acceptInvite } = useAuth();
+  const search = new URLSearchParams(window.location.search);
+  return React.createElement(LoginPageRoute, {
+    onSignIn: signIn,
+    onAcceptInvite: acceptInvite,
+    inviteToken: search.get("invite") || undefined,
+    inviteEmail: search.get("email") || undefined,
+  });
 }
 
 export const router = createBrowserRouter([

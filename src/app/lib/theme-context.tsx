@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "./auth-context";
-import { apiFetch } from "./supabase";
+import { apiFetch } from "./api";
 
 // ========== Accent Color Presets ==========
 export const ACCENT_PRESETS = [

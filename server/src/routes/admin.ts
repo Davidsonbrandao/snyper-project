@@ -1,11 +1,16 @@
-import { createClient } from "@supabase/supabase-js";
+import crypto from "node:crypto";
 import { Hono } from "hono";
 import { env } from "../config/env.js";
 import type { AuthUser } from "../lib/auth.js";
 import { getAuthUser } from "../lib/auth.js";
 import { normalizeStoredJson } from "../lib/json.js";
 import { kvDel, kvGet, kvSet } from "../lib/kv.js";
-import { getSupabaseAdminClient } from "../lib/supabase.js";
+import {
+  createInviteToken,
+  hashInviteToken,
+  updateUserById,
+  upsertUser,
+} from "../lib/state.js";
 import {
   allCouponsKey,
   allPlansKey,
@@ -16,10 +21,13 @@ import {
   tenantKey,
 } from "../lib/tenant.js";
 
-const ADMIN_EMAIL = "admin@snyper.com.br";
+const ADMIN_EMAIL = env.BOOTSTRAP_ADMIN_EMAIL || "admin@snyper.local";
 
 function isSuperAdmin(user: AuthUser | null) {
-  return user?.email?.toLowerCase() === ADMIN_EMAIL;
+  return (
+    user?.role === "superadmin" ||
+    user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+  );
 }
 
 async function requireSuperAdmin(c: any) {
@@ -258,17 +266,18 @@ adminRoute.put("/tenants/:tenantId/users/:userId", async (c) => {
   const tenantId = c.req.param("tenantId");
   const userId = c.req.param("userId");
   const { email, name, status } = await c.req.json();
-  const supabase = getSupabaseAdminClient();
+  const updatedUser = await updateUserById(userId, (current) => ({
+    ...current,
+    email: email || current.email,
+    status: status || current.status,
+    userMetadata: {
+      ...(current.userMetadata || {}),
+      ...(name ? { name } : {}),
+    },
+  }));
 
-  const updateData: any = {};
-  if (email) updateData.email = email;
-  if (name) updateData.user_metadata = { name };
-
-  if (Object.keys(updateData).length > 0) {
-    const { error } = await supabase.auth.admin.updateUserById(userId, updateData);
-    if (error) {
-      return c.json({ error: `Erro ao atualizar usuario: ${error.message}` }, 400);
-    }
+  if (!updatedUser) {
+    return c.json({ error: "Usuario nao encontrado" }, 404);
   }
 
   const members = parseArray<any>(await kvGet(orgTeamKey(tenantId)));
@@ -295,21 +304,8 @@ adminRoute.post("/tenants/:id/send-license", async (c) => {
     return c.json({ error: "Licenca ja enviada para esta empresa" }, 400);
   }
 
-  const supabase = getSupabaseAdminClient();
-  const { data: newUser, error } = await supabase.auth.admin.createUser({
-    email: tenant.ownerEmail,
-    user_metadata: {
-      name: tenant.ownerName,
-      companyName: tenant.companyName,
-    },
-    email_confirm: true,
-  });
-
-  if (error || !newUser.user) {
-    return c.json({ error: `Erro ao criar usuario: ${error?.message || "erro desconhecido"}` }, 400);
-  }
-
-  const realTenantId = newUser.user.id;
+  const inviteToken = createInviteToken();
+  const realTenantId = crypto.randomUUID();
   const now = new Date();
   const trialDays = tenant.trialDays || 0;
   const trialEnd =
@@ -324,6 +320,26 @@ adminRoute.post("/tenants/:id/send-license", async (c) => {
       await kvSet(couponKey(String(tenant.couponCode).toUpperCase()), JSON.stringify(coupon));
     }
   }
+
+  await upsertUser({
+    id: realTenantId,
+    email: String(tenant.ownerEmail).toLowerCase(),
+    createdAt: now.toISOString(),
+    lastSignInAt: null,
+    role: "superadmin",
+    status: "invited",
+    orgId: realTenantId,
+    inviteTokenHash: hashInviteToken(inviteToken),
+    inviteTokenExpiresAt: new Date(
+      now.getTime() + env.INVITE_TTL_DAYS * 24 * 60 * 60 * 1000,
+    ).toISOString(),
+    userMetadata: {
+      name: tenant.ownerName,
+      companyName: tenant.companyName,
+      ownerPhone: tenant.ownerPhone || "",
+      orgId: realTenantId,
+    },
+  });
 
   const updatedTenant = {
     ...tenant,
@@ -357,28 +373,14 @@ adminRoute.post("/tenants/:id/send-license", async (c) => {
         email: tenant.ownerEmail,
         phone: tenant.ownerPhone || "",
         role: "admin",
-        status: "active",
+        status: "invited",
         createdAt: now.toISOString(),
       },
     ]),
   );
 
-  if (env.SUPABASE_URL && env.SUPABASE_ANON_KEY) {
-    try {
-      const anonClient = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
-      await anonClient.auth.signInWithOtp({
-        email: tenant.ownerEmail,
-        options: {
-          shouldCreateUser: false,
-          emailRedirectTo: `${env.APP_URL}/auth/confirm`,
-        },
-      });
-    } catch (sendErr) {
-      console.error("Falha ao disparar magic link de licenca:", sendErr);
-    }
-  }
-
-  return c.json({ tenant: updatedTenant });
+  return c.json({
+    tenant: updatedTenant,
+    activationLink: `${env.APP_URL}/login?invite=${encodeURIComponent(inviteToken)}&email=${encodeURIComponent(String(tenant.ownerEmail))}`,
+  });
 });

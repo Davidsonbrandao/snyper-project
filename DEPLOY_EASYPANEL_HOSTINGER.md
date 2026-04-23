@@ -1,102 +1,89 @@
-# Deploy Snyper no EasyPanel / Hostinger
+# Passo 1: Publicar o Frontend do Snyper no EasyPanel / Hostinger
 
-Este projeto ja esta pronto para subir como app frontend containerizado.
+Este e o primeiro passo seguro da migracao: publicar apenas o frontend no VPS e apontar ele para a API propria.
 
-Arquitetura recomendada no EasyPanel:
+## Objetivo
 
-- frontend em `app.snyper.com.br`
-- backend em `api.snyper.com.br`
+- subir a interface do Snyper em `app.snyper.com.br`
+- fazer o frontend falar com `api.snyper.com.br`
+- manter o layout igual
 
-## O que usar
+## O que este passo usa
 
-- Tipo de servico: `App`
-- Fonte: repositorio Git ou upload com `Dockerfile`
-- Porta interna da aplicacao: `80`
-- Dominio esperado: `app.snyper.com.br`
+- servico `App` no EasyPanel
+- `Dockerfile` da raiz do projeto
+- porta interna `80`
+- dominio `app.snyper.com.br`
 
-## Variaveis de ambiente
+## Antes de comecar
 
-Configure no EasyPanel:
+Confirme estes pontos no codigo:
+
+- o build do frontend passa
+- o backend proprio tambem passa
+- `VITE_API_BASE_URL` aponta para `https://api.snyper.com.br`
+
+## Variaveis de ambiente do frontend
+
+Use estas variaveis no servico do frontend no EasyPanel:
 
 ```env
-VITE_SUPABASE_URL=https://SEU-PROJETO.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_SUBSTITUA_PELA_SUA_CHAVE
-VITE_SERVER_FUNCTION_BASE=make-server-bd920daa
-VITE_API_BASE_URL=
+VITE_APP_URL=https://app.snyper.com.br
+VITE_API_BASE_URL=https://api.snyper.com.br
 ```
-
-Use o arquivo `.env.example` como referencia.
 
 ## Passo a passo no EasyPanel
 
-1. Crie um novo projeto.
-2. Adicione um servico do tipo `App`.
-3. Conecte o repositorio Git do projeto.
-4. No build method, use o `Dockerfile` da raiz.
-5. Em `Domains & Proxy`, configure `app.snyper.com.br`.
-6. Em `Proxy Port`, informe `80`.
-7. Em `Environment`, cole as variaveis acima.
-8. Clique em `Deploy`.
+1. Entre no EasyPanel.
+2. Crie um novo `Project`.
+3. Adicione um servico do tipo `App`.
+4. Conecte o repositorio `snyper-project` do GitHub.
+5. Em `Build`, selecione o `Dockerfile` da raiz do projeto.
+6. Em `Domains & Proxy`, adicione o dominio `app.snyper.com.br`.
+7. Defina a `Proxy Port` como `80`.
+8. Em `Environment`, cole as variaveis acima.
+9. Clique em `Deploy`.
 
 ## DNS
 
-Antes de ativar o dominio, aponte o subdominio:
+No painel da Hostinger, crie o apontamento:
 
 - Tipo: `A`
-- Host: `app`
+- Nome/Host: `app`
 - Valor: IP publico da VPS
 
 ## SSL
 
-Depois que o DNS propagar, o EasyPanel deve emitir o SSL automaticamente via Let's Encrypt ao publicar o dominio.
+Depois que o DNS propagar, o EasyPanel deve emitir o SSL automaticamente via Let's Encrypt.
 
-## Estado atual da migracao
+## Como saber se deu certo
 
-Hoje o frontend ja pode rodar fora do Figma Make e ser publicado em container.
+Abra no navegador:
 
-Se `VITE_API_BASE_URL` ficar vazio, o frontend continua usando o backend atual no Supabase.
+- `https://app.snyper.com.br`
 
-Quando apontarmos para o backend proprio, preencha por exemplo:
+O esperado e:
 
-```env
-VITE_API_BASE_URL=https://api.snyper.com.br
-```
+- a pagina carregar sem quebrar o visual
+- o login abrir normalmente
+- as chamadas irem para a API do VPS
 
-Rotas ja compatibilizadas com o backend proprio:
+## Se ficar em `Waiting for service...`
 
-- `/health`
-- `/org`
-- `/finance`
-- `/team`
-- `/profiles`
-- `/theme`
-- `/invoices`
-- `/tickets`
-- `/admin`
-- `/upload`
-- `/auth/profile`
+O erro mais comum e o dominio estar apontando para a porta errada.
 
-Dependencias ainda ligadas ao Supabase:
+Para o frontend do Snyper, a porta certa e `80`.
 
-- autenticacao por Magic Link
-- storage de entregaveis em modo compativel
-- atualizacao de perfil do usuario
+Se o EasyPanel estiver com `3000`, troque para `80` e salve de novo.
+O `Dockerfile` da raiz sobe o site com `nginx`, e o `nginx` escuta na porta `80`.
 
-## Proxima fase tecnica
+## O que nao fazer agora
 
-Separar o backend em um servico proprio para EasyPanel, mantendo:
+- nao mexer no layout
+- nao apontar o frontend para outro lugar
+- nao misturar a porta do backend com a do frontend
 
-- auth
-- API financeira
-- upload de arquivos
-- configuracoes multi-tenant
+## Proximo passo depois disso
 
-## DNS neste momento
+Quando o frontend estiver no ar, suba o backend proprio em `api.snyper.com.br` usando o guia separado.
 
-Nao precisa trocar o DNS de `app.snyper.com.br` ainda.
-
-Primeiro vamos:
-
-1. subir frontend e backend novos na VPS
-2. validar tudo por dominio tecnico ou URL temporaria
-3. so depois trocar o apontamento oficial

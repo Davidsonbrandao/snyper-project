@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "./auth-context";
-import { apiFetch } from "./supabase";
+import { apiFetch } from "./api";
 
 // ========== Types ==========
 interface ModulePermission {

@@ -18,12 +18,16 @@ ticketsRoute.post("/", async (c) => {
   }
 
   const orgId = await resolveOrgId(user.id);
+  const userName =
+    typeof user.user_metadata?.name === "string"
+      ? user.user_metadata.name
+      : user.email;
   const ticket = {
     id: `tkt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     orgId,
     userId: user.id,
     userEmail: user.email,
-    userName: user.name || user.email,
+    userName,
     subject,
     message,
     priority: priority || "medium",

@@ -1,29 +1,29 @@
 # Snyper Project
 
-Snyper é um SaaS/Micro SaaS em React + Vite com uma camada de backend em Hono para a migração gradual do legado Supabase para infraestrutura própria.
+Snyper e um SaaS/Micro SaaS em React + Vite com uma API propria em Hono para rodar totalmente no VPS.
 
-## O que este repositório entrega
+## O que este repositorio entrega
 
-- frontend atual sem mudança visual
-- compatibilidade com o fluxo legado enquanto a migração acontece
-- backend pronto para VPS/EasyPanel
-- base organizada para GitHub, deploy e evolução do produto
+- frontend atual sem mudanca visual
+- autenticao local por convite ou senha
+- armazenamento local da API no VPS
+- backend pronto para EasyPanel e Hostinger
 
 ## Stack
 
 - Frontend: React, Vite, TypeScript
 - Backend: Node.js, Hono, TypeScript
-- Auth e storage: Supabase durante a transição
+- Auth e arquivos: API propria no VPS
 - Deploy alvo: Hostinger VPS + EasyPanel
 
 ## Como rodar
 
-1. Instale as dependências na raiz.
-2. Crie o arquivo `.env` a partir de [`.env.example`](./.env.example).
+1. Instale as dependencias na raiz e em `server/`.
+2. Crie os arquivos `.env` a partir de [`.env.example`](./.env.example) e [`.env.example`](./server/.env.example).
 3. Rode o frontend com `npm run dev`.
 4. Rode o backend em `server/` com `npm run dev`.
 
-## Validação
+## Validacao
 
 Use `npm run verify` para conferir:
 
@@ -32,8 +32,9 @@ Use `npm run verify` para conferir:
 - typecheck do backend
 - build do backend
 
-## Observações
+## Observacoes
 
-- O layout não deve ser alterado sem necessidade.
-- O objetivo aqui é deixar o sistema limpo, estável e pronto para publicação e deploy profissional.
-- O login por e-mail usa `VITE_APP_URL` para funcionar em local, staging e produção.
+- O layout nao deve ser alterado sem necessidade.
+- O login usa a API local do VPS.
+- Arquivos e dados precisam de volume persistente no deploy.
+

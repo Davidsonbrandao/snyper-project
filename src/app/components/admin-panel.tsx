@@ -11,7 +11,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "../lib/auth-context";
-import { apiFetch } from "../lib/supabase";
+import { apiFetch } from "../lib/api";
 import { CustomSelect } from "./ui/custom-select";
 import { DatePickerInput } from "./ui/date-picker-input";
 import { CurrencyInput, PercentInput } from "./ui/currency-input";

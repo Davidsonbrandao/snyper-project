@@ -1,12 +1,16 @@
+import crypto from "node:crypto";
 import { Hono } from "hono";
+import { env } from "../config/env.js";
 import { getAuthUser } from "../lib/auth.js";
 import { kvDel, kvGet, kvSet } from "../lib/kv.js";
-import { getSupabaseAdminClient } from "../lib/supabase.js";
 import {
-  legacyTeamKey,
-  orgTeamKey,
-  resolveOrgId,
-} from "../lib/tenant.js";
+  createInviteToken,
+  hashInviteToken,
+  removeUser,
+  updateUserById,
+  upsertUser,
+} from "../lib/state.js";
+import { orgTeamKey, resolveOrgId } from "../lib/tenant.js";
 
 interface TeamMember {
   id: string;
@@ -41,38 +45,39 @@ function parseMembers(data: unknown): TeamMember[] {
   return Array.isArray(data) ? (data as TeamMember[]) : [];
 }
 
-async function loadMembersForOrg(orgId: string, userEmail?: string | undefined) {
+function buildCurrentMember(user: any): TeamMember {
+  return {
+    id: user.id,
+    name:
+      sanitizeString(user.user_metadata?.name) ||
+      sanitizeString(user.user_metadata?.nickname) ||
+      sanitizeString(user.email) ||
+      "Usuario",
+    email: sanitizeString(user.email),
+    phone: sanitizeString(user.user_metadata?.phone, 30),
+    role: user.role === "superadmin" ? "admin" : "member",
+    status: "active",
+    createdAt: user.created_at || new Date().toISOString(),
+    profileId: sanitizeString(user.user_metadata?.profileId, 50),
+  };
+}
+
+async function loadMembersForOrg(orgId: string, currentUser?: any) {
   let members = parseMembers(await kvGet(orgTeamKey(orgId)));
 
-  if (members.length === 0) {
-    const legacyMembers = parseMembers(await kvGet(legacyTeamKey(orgId)));
-    const userIsAdmin = legacyMembers.some(
-      (member) =>
-        member.role === "admin" &&
-        member.email?.toLowerCase() === userEmail?.toLowerCase(),
-    );
-
-    if (legacyMembers.length > 0 && (userIsAdmin || orgId)) {
-      members = legacyMembers;
-      await kvSet(orgTeamKey(orgId), JSON.stringify(members));
-    }
-  }
-
-  if (members.length === 0) {
-    const sharedLegacyMembers = parseMembers(await kvGet("team_members"));
-    const userIsAdmin = sharedLegacyMembers.some(
-      (member) =>
-        member.role === "admin" &&
-        member.email?.toLowerCase() === userEmail?.toLowerCase(),
-    );
-
-    if (sharedLegacyMembers.length > 0 && userIsAdmin) {
-      members = sharedLegacyMembers;
-      await kvSet(orgTeamKey(orgId), JSON.stringify(members));
-    }
+  if (members.length === 0 && currentUser) {
+    members = [buildCurrentMember(currentUser)];
+    await kvSet(orgTeamKey(orgId), JSON.stringify(members));
   }
 
   return members;
+}
+
+function buildActivationLink(email: string, inviteToken: string) {
+  const url = new URL("/login", env.APP_URL);
+  url.searchParams.set("invite", inviteToken);
+  url.searchParams.set("email", email);
+  return url.toString();
 }
 
 export const teamRoute = new Hono();
@@ -84,7 +89,7 @@ teamRoute.get("/", async (c) => {
   }
 
   const orgId = await resolveOrgId(user.id);
-  const members = await loadMembersForOrg(orgId, user.email);
+  const members = await loadMembersForOrg(orgId, user);
   return c.json({ members });
 });
 
@@ -105,35 +110,77 @@ teamRoute.post("/invite", async (c) => {
     return c.json({ error: "Nome e e-mail valido sao obrigatorios" }, 400);
   }
 
-  const supabase = getSupabaseAdminClient();
-  const { data: newUser, error } = await supabase.auth.admin.createUser({
-    email,
-    user_metadata: { name, phone, profileId, orgId },
-    email_confirm: true,
-  });
+  const currentMembers = await loadMembersForOrg(orgId, user);
+  const existingMember = currentMembers.find(
+    (member) => member.email.toLowerCase() === email.toLowerCase(),
+  );
 
-  if (error || !newUser.user) {
-    return c.json({ error: error?.message || "Erro ao criar usuario" }, 400);
+  if (existingMember && existingMember.status === "active") {
+    return c.json({ error: "Este e-mail ja esta cadastrado no sistema" }, 400);
   }
 
-  await kvSet(`user_org_${newUser.user.id}`, orgId);
+  const inviteToken = createInviteToken();
+  const inviteTokenExpiresAt = new Date(
+    Date.now() + env.INVITE_TTL_DAYS * 24 * 60 * 60 * 1000,
+  ).toISOString();
 
-  const members = await loadMembersForOrg(orgId, user.email);
-  const newMember: TeamMember = {
-    id: newUser.user.id,
+  const memberId = existingMember?.id || crypto.randomUUID();
+  const userRecord = existingMember
+    ? await updateUserById(memberId, (current) => ({
+        ...current,
+        email,
+        orgId,
+        role: "member",
+        status: "invited",
+        passwordHash: current.passwordHash,
+        passwordSalt: current.passwordSalt,
+        inviteTokenHash: hashInviteToken(inviteToken),
+        inviteTokenExpiresAt,
+        userMetadata: {
+          ...(current.userMetadata || {}),
+          name,
+          phone,
+          profileId,
+          orgId,
+        },
+      }))
+    : await upsertUser({
+        id: memberId,
+        email,
+        createdAt: new Date().toISOString(),
+        lastSignInAt: null,
+        role: "member",
+        status: "invited",
+        orgId,
+        inviteTokenHash: hashInviteToken(inviteToken),
+        inviteTokenExpiresAt,
+        userMetadata: {
+          name,
+          phone,
+          profileId,
+          orgId,
+        },
+      });
+
+  const member: TeamMember = {
+    id: memberId,
     name,
     email,
     phone,
     role: "member",
     status: "invited",
-    createdAt: new Date().toISOString(),
+    createdAt: userRecord?.createdAt || new Date().toISOString(),
     profileId: profileId || "",
   };
 
-  members.push(newMember);
+  const members = currentMembers.filter((item) => item.id !== memberId);
+  members.push(member);
   await kvSet(orgTeamKey(orgId), JSON.stringify(members));
 
-  return c.json({ member: newMember });
+  return c.json({
+    member,
+    activationLink: buildActivationLink(email, inviteToken),
+  });
 });
 
 teamRoute.delete("/:id", async (c) => {
@@ -144,7 +191,7 @@ teamRoute.delete("/:id", async (c) => {
 
   const memberId = c.req.param("id");
   const orgId = await resolveOrgId(user.id);
-  const members = await loadMembersForOrg(orgId, user.email);
+  const members = await loadMembersForOrg(orgId, user);
 
   if (!members.some((member) => member.id === memberId)) {
     return c.json({ error: "Membro nao encontrado nesta organizacao" }, 403);
@@ -154,8 +201,7 @@ teamRoute.delete("/:id", async (c) => {
     return c.json({ error: "Voce nao pode remover a si mesmo" }, 400);
   }
 
-  const supabase = getSupabaseAdminClient();
-  await supabase.auth.admin.deleteUser(memberId);
+  await removeUser(memberId);
   await kvDel(`user_org_${memberId}`);
 
   const updated = members.filter((member) => member.id !== memberId);
@@ -173,7 +219,7 @@ teamRoute.put("/:id/profile", async (c) => {
   const memberId = c.req.param("id");
   const { profileId } = await c.req.json();
   const orgId = await resolveOrgId(user.id);
-  const members = await loadMembersForOrg(orgId, user.email);
+  const members = await loadMembersForOrg(orgId, user);
 
   const updated = members.map((member) =>
     member.id === memberId
@@ -183,10 +229,13 @@ teamRoute.put("/:id/profile", async (c) => {
 
   await kvSet(orgTeamKey(orgId), JSON.stringify(updated));
 
-  const supabase = getSupabaseAdminClient();
-  await supabase.auth.admin.updateUserById(memberId, {
-    user_metadata: { profileId: sanitizeString(profileId, 50) || "" },
-  });
+  await updateUserById(memberId, (current) => ({
+    ...current,
+    userMetadata: {
+      ...(current.userMetadata || {}),
+      profileId: sanitizeString(profileId, 50) || "",
+    },
+  }));
 
   return c.json({ success: true });
 });

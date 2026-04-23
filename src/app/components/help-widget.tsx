@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { LifeBuoy, X, Send, Loader2, Check, ChevronDown } from "lucide-react";
 import { useAuth } from "../lib/auth-context";
-import { apiFetch } from "../lib/supabase";
+import { apiFetch } from "../lib/api";
 import { CustomSelect } from "./ui/custom-select";
 import { motion, AnimatePresence } from "motion/react";
 

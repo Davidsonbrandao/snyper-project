@@ -6,7 +6,7 @@ import {
   ChevronDown, ChevronUp, ShieldCheck, ShieldAlert, LayoutGrid, Settings2,
   ArrowRight, Lock, Unlock, Search, AlertTriangle, RefreshCw,
 } from "lucide-react";
-import { apiFetch } from "../lib/supabase";
+import { apiFetch } from "../lib/api";
 import { useAuth } from "../lib/auth-context";
 import { useFinance } from "../lib/finance-context";
 import { formatCurrency, generateId, type CommissionMember } from "../lib/finance-data";
@@ -294,7 +294,7 @@ export function TeamPage() {
     }
     setSubmitting(true);
     try {
-      await apiFetch("/team/invite", {
+      const result = await apiFetch("/team/invite", {
         method: "POST",
         body: JSON.stringify({
           name: form.name,
@@ -304,8 +304,7 @@ export function TeamPage() {
         }),
       });
 
-      const baseUrl = window.location.origin;
-      const activationLink = `${baseUrl}/?login=${encodeURIComponent(form.email)}`;
+      const activationLink = result?.activationLink || `${window.location.origin}/login`;
 
       setInviteResult({
         name: form.name,

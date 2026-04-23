@@ -1,30 +1,57 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Logo } from "./ui/logo";
 import {
-  Mail, ArrowRight, Loader2, Shield, Lock, CheckCircle2,
-  Fingerprint, KeyRound, AlertTriangle,
+  Mail,
+  ArrowRight,
+  Loader2,
+  Shield,
+  Lock,
+  Fingerprint,
+  KeyRound,
+  AlertTriangle,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 interface LoginPageProps {
-  onSignIn: (email: string) => Promise<{ error: string | null }>;
+  onSignIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ error: string | null }>;
+  onAcceptInvite: (inviteToken: string) => Promise<{ error: string | null }>;
+  inviteToken?: string;
+  inviteEmail?: string;
 }
 
-export function LoginPage({ onSignIn }: LoginPageProps) {
-  const [email, setEmail] = useState("");
+export function LoginPage({
+  onSignIn,
+  onAcceptInvite,
+  inviteToken,
+  inviteEmail,
+}: LoginPageProps) {
+  const [email, setEmail] = useState(inviteEmail || "");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [cooldown, setCooldown] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
   const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const inviteDoneRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-    // Cooldown timer for brute-force protection
+  useEffect(() => {
+    if (inviteEmail) {
+      setEmail(inviteEmail);
+    }
+  }, [inviteEmail]);
+
   useEffect(() => {
     if (cooldown > 0) {
       cooldownRef.current = setInterval(() => {
-        setCooldown(prev => {
+        setCooldown((prev) => {
           if (prev <= 1) {
             if (cooldownRef.current) clearInterval(cooldownRef.current);
             return 0;
@@ -32,26 +59,49 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
           return prev - 1;
         });
       }, 1000);
-      return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
+
+      return () => {
+        if (cooldownRef.current) clearInterval(cooldownRef.current);
+      };
     }
   }, [cooldown]);
 
-  // Email validation
-  const isValidEmail = (e: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+  useEffect(() => {
+    const runInvite = async () => {
+      if (!inviteToken || inviteDoneRef.current) return;
+      inviteDoneRef.current = true;
+      setLoading(true);
+      setError("");
+
+      const result = await onAcceptInvite(inviteToken);
+      if (result.error) {
+        setError(result.error);
+        inviteDoneRef.current = false;
+      } else {
+        setSuccess(true);
+      }
+
+      setLoading(false);
+    };
+
+    void runInvite();
+  }, [inviteToken, onAcceptInvite]);
+
+  const isValidEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = email.trim().toLowerCase();
+    const trimmedEmail = email.trim().toLowerCase();
 
-    if (!trimmed) return;
+    if (!trimmedEmail || !password) return;
     if (cooldown > 0) return;
 
-    if (!isValidEmail(trimmed)) {
+    if (!isValidEmail(trimmedEmail)) {
       setError("Formato de e-mail invalido.");
       return;
     }
 
-    // Rate limiting: after 5 attempts, add cooldown
     if (attempts >= 5) {
       setCooldown(30);
       setAttempts(0);
@@ -63,26 +113,21 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
     setError("");
 
     try {
-      const result = await onSignIn(trimmed);
-      setLoading(false);
-      setAttempts(prev => prev + 1);
+      const result = await onSignIn(trimmedEmail, password);
+      setAttempts((prev) => prev + 1);
 
       if (result.error) {
-        if (result.error.includes("nao esta autorizado") || result.error.includes("user not found") || result.error.includes("Signups not allowed")) {
-          setError("Este e-mail nao esta autorizado. Solicite acesso ao administrador do sistema.");
-        } else {
-          setError(result.error);
-        }
+        setError(result.error);
       } else {
         setSuccess(true);
       }
-    } catch (err: any) {
-      setLoading(false);
+    } catch {
       setError("Erro de conexao. Verifique sua internet e tente novamente.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Floating particles animation
   const particles = Array.from({ length: 6 }, (_, i) => ({
     id: i,
     size: 2 + Math.random() * 3,
@@ -93,8 +138,10 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
   }));
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{ backgroundColor: "var(--bg-base)" }}>
-      {/* Background gradient effects */}
+    <div
+      className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden"
+      style={{ backgroundColor: "var(--bg-base)" }}
+    >
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <motion.div
           animate={{ opacity: [0.03, 0.06, 0.03], scale: [1, 1.1, 1] }}
@@ -108,7 +155,6 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
           className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] rounded-full blur-[130px]"
           style={{ backgroundColor: "var(--accent)" }}
         />
-        {/* Grid pattern overlay */}
         <div
           className="absolute inset-0 opacity-[0.015]"
           style={{
@@ -116,16 +162,15 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
             backgroundSize: "60px 60px",
           }}
         />
-        {/* Floating particles */}
-        {particles.map(p => (
+        {particles.map((particle) => (
           <motion.div
-            key={p.id}
+            key={particle.id}
             className="absolute rounded-full"
             style={{
-              width: p.size,
-              height: p.size,
-              left: `${p.x}%`,
-              top: `${p.y}%`,
+              width: particle.size,
+              height: particle.size,
+              left: `${particle.x}%`,
+              top: `${particle.y}%`,
               backgroundColor: "var(--accent)",
               opacity: 0.15,
             }}
@@ -135,9 +180,9 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
               opacity: [0.1, 0.25, 0.1],
             }}
             transition={{
-              duration: p.duration,
+              duration: particle.duration,
               repeat: Infinity,
-              delay: p.delay,
+              delay: particle.delay,
               ease: "easeInOut",
             }}
           />
@@ -150,7 +195,6 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="relative w-full max-w-[440px] z-10"
       >
-        {/* Logo */}
         <div className="flex flex-col items-center mb-10">
           <motion.div
             initial={{ scale: 0.7, opacity: 0 }}
@@ -166,10 +210,11 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
             transition={{ delay: 0.3, duration: 0.5 }}
             className="text-[12px] tracking-[0.2em] uppercase"
             style={{ color: "var(--text-muted)", fontWeight: 500 }}
-          ><span className="italic">Planilha é tiro no escuro. aqui é tiro certo.</span></motion.p>
+          >
+            <span className="italic">Sistema proprio, sem dependencia externa.</span>
+          </motion.p>
         </div>
 
-        {/* Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -181,7 +226,6 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
             boxShadow: "0 25px 60px rgba(0,0,0,0.4), 0 0 0 1px var(--border-extra-subtle)",
           }}
         >
-          {/* Accent line at top */}
           <div
             className="absolute top-0 left-1/2 -translate-x-1/2 h-[2px] w-24 rounded-full"
             style={{ background: `linear-gradient(90deg, transparent, var(--accent), transparent)` }}
@@ -189,7 +233,6 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
 
           <AnimatePresence mode="wait">
             {success ? (
-              /* Success state — magic link sent */
               <motion.div
                 key="success"
                 initial={{ opacity: 0, scale: 0.9 }}
@@ -203,34 +246,24 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.1, type: "spring", stiffness: 200, damping: 15 }}
                   className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-                  style={{ backgroundColor: "rgba(var(--accent-rgb),0.08)", border: "1px solid rgba(var(--accent-rgb),0.2)" }}
+                  style={{
+                    backgroundColor: "rgba(var(--accent-rgb),0.08)",
+                    border: "1px solid rgba(var(--accent-rgb),0.2)",
+                  }}
                 >
-                  <Mail className="w-8 h-8" style={{ color: "var(--accent)" }} />
+                  <Lock className="w-8 h-8" style={{ color: "var(--accent)" }} />
                 </motion.div>
                 <h2 className="text-[18px] mb-2" style={{ fontWeight: 600, color: "var(--text-primary)" }}>
-                  Link de Acesso Enviado
+                  Acesso liberado
                 </h2>
                 <p className="text-[13px] mb-1" style={{ color: "var(--text-secondary)" }}>
-                  Enviamos um link para <strong style={{ color: "var(--text-primary)" }}>{email}</strong>
+                  Voce ja pode entrar no sistema.
                 </p>
                 <p className="text-[12px] leading-relaxed" style={{ color: "var(--text-muted)" }}>
-                  Abra o e-mail e clique no link para acessar o sistema. O link expira em 1 hora.
+                  Se a tela nao trocar sozinha, aguarde alguns segundos.
                 </p>
-                <div className="mt-5 p-3 rounded-xl" style={{ backgroundColor: "var(--bg-hover)", border: "1px solid var(--border-subtle)" }}>
-                  <p className="text-[11px]" style={{ color: "var(--text-muted)" }}>
-                    Nao recebeu? Verifique a pasta de spam ou tente novamente em alguns minutos.
-                  </p>
-                </div>
-                <button
-                  onClick={() => { setSuccess(false); setEmail(""); setAttempts(0); }}
-                  className="mt-4 text-[12px] transition-colors"
-                  style={{ color: "var(--accent)" }}
-                >
-                  Usar outro e-mail
-                </button>
               </motion.div>
             ) : (
-              /* Login form */
               <motion.div
                 key="form"
                 initial={{ opacity: 0 }}
@@ -240,7 +273,10 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
                 <div className="text-center mb-8">
                   <div
                     className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-4"
-                    style={{ backgroundColor: "rgba(var(--accent-rgb),0.08)", border: "1px solid rgba(var(--accent-rgb),0.15)" }}
+                    style={{
+                      backgroundColor: "rgba(var(--accent-rgb),0.08)",
+                      border: "1px solid rgba(var(--accent-rgb),0.15)",
+                    }}
                   >
                     <KeyRound className="w-5 h-5" style={{ color: "var(--accent)" }} />
                   </div>
@@ -248,30 +284,47 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
                     Acessar Sistema
                   </h2>
                   <p className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
-                    Informe seu e-mail cadastrado para entrar
+                    Entre com seu e-mail e senha, ou use o convite se recebeu um link de acesso.
                   </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div>
-                    <label className="text-[11px] block mb-2 tracking-wide uppercase" style={{ color: "var(--text-muted)", fontWeight: 500 }}>
+                    <label
+                      className="text-[11px] block mb-2 tracking-wide uppercase"
+                      style={{ color: "var(--text-muted)", fontWeight: 500 }}
+                    >
                       E-mail
                     </label>
                     <div className="relative group">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors" style={{ color: email ? "var(--accent)" : "var(--text-muted)" }} />
+                      <Mail
+                        className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors"
+                        style={{ color: email ? "var(--accent)" : "var(--text-muted)" }}
+                      />
                       <input
                         ref={inputRef}
                         type="email"
                         value={email}
-                        onChange={(e) => { setEmail(e.target.value); setError(""); }}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setError("");
+                        }}
                         className="w-full rounded-xl pl-11 pr-4 py-3.5 text-[14px] focus:outline-none transition-all"
                         style={{
                           backgroundColor: "var(--bg-input)",
                           border: `1px solid ${error ? "rgba(239,68,68,0.3)" : "var(--border-default)"}`,
                           color: "var(--text-primary)",
                         }}
-                        onFocus={(e) => e.currentTarget.style.borderColor = error ? "rgba(239,68,68,0.5)" : "rgba(var(--accent-rgb),0.4)"}
-                        onBlur={(e) => e.currentTarget.style.borderColor = error ? "rgba(239,68,68,0.3)" : "var(--border-default)"}
+                        onFocus={(e) =>
+                          (e.currentTarget.style.borderColor = error
+                            ? "rgba(239,68,68,0.5)"
+                            : "rgba(var(--accent-rgb),0.4)")
+                        }
+                        onBlur={(e) =>
+                          (e.currentTarget.style.borderColor = error
+                            ? "rgba(239,68,68,0.3)"
+                            : "var(--border-default)")
+                        }
                         placeholder="seu@email.com"
                         autoFocus
                         autoComplete="email"
@@ -280,7 +333,43 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
                     </div>
                   </div>
 
-                  {/* Error message */}
+                  <div>
+                    <label
+                      className="text-[11px] block mb-2 tracking-wide uppercase"
+                      style={{ color: "var(--text-muted)", fontWeight: 500 }}
+                    >
+                      Senha
+                    </label>
+                    <div className="relative group">
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((current) => !current)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors"
+                        style={{ color: "var(--text-muted)" }}
+                        aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setError("");
+                        }}
+                        className="w-full rounded-xl pl-4 pr-11 py-3.5 text-[14px] focus:outline-none transition-all"
+                        style={{
+                          backgroundColor: "var(--bg-input)",
+                          border: `1px solid ${error ? "rgba(239,68,68,0.3)" : "var(--border-default)"}`,
+                          color: "var(--text-primary)",
+                        }}
+                        placeholder="Sua senha"
+                        autoComplete="current-password"
+                        disabled={loading || cooldown > 0}
+                      />
+                    </div>
+                  </div>
+
                   <AnimatePresence>
                     {error && (
                       <motion.div
@@ -291,19 +380,23 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
                       >
                         <div
                           className="rounded-xl px-4 py-3 flex items-start gap-2.5"
-                          style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.15)" }}
+                          style={{
+                            backgroundColor: "rgba(239,68,68,0.08)",
+                            border: "1px solid rgba(239,68,68,0.15)",
+                          }}
                         >
                           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#ef4444" }} />
-                          <p className="text-[12px] leading-relaxed" style={{ color: "#ef4444" }}>{error}</p>
+                          <p className="text-[12px] leading-relaxed" style={{ color: "#ef4444" }}>
+                            {error}
+                          </p>
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
 
-                  {/* Submit button */}
                   <button
                     type="submit"
-                    disabled={loading || !email.trim() || cooldown > 0}
+                    disabled={loading || !email.trim() || !password.trim() || cooldown > 0}
                     className="w-full flex items-center justify-center gap-2.5 px-5 py-3.5 rounded-xl transition-all text-[14px] disabled:opacity-40 disabled:cursor-not-allowed group relative overflow-hidden"
                     style={{
                       backgroundColor: "var(--accent)",
@@ -312,15 +405,18 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
                       boxShadow: loading ? "none" : "0 4px 15px rgba(var(--accent-rgb),0.25)",
                     }}
                   >
-                    {/* Hover glow effect */}
                     <div
                       className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                      style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%)" }}
+                      style={{
+                        background: "linear-gradient(180deg, rgba(255,255,255,0.1) 0%, transparent 100%)",
+                      }}
                     />
                     {loading ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin relative z-10" />
-                        <span className="relative z-10">Autenticando...</span>
+                        <span className="relative z-10">
+                          {inviteToken ? "Ativando convite..." : "Autenticando..."}
+                        </span>
                       </>
                     ) : cooldown > 0 ? (
                       <span className="relative z-10">Aguarde {cooldown}s</span>
@@ -333,8 +429,10 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
                   </button>
                 </form>
 
-                {/* Info text */}
-                <p className="text-[11px] text-center mt-5 leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                <p
+                  className="text-[11px] text-center mt-5 leading-relaxed"
+                  style={{ color: "var(--text-muted)" }}
+                >
                   O acesso e restrito a usuarios previamente cadastrados pelo administrador do sistema.
                 </p>
               </motion.div>
@@ -342,7 +440,6 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
           </AnimatePresence>
         </motion.div>
 
-        {/* Security badges */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -351,17 +448,18 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
         >
           {[
             { icon: Shield, label: "Acesso Seguro" },
-            { icon: Lock, label: "Dados Criptografados" },
-            { icon: Fingerprint, label: "Autenticacao JWT" },
+            { icon: Lock, label: "Dados Locais" },
+            { icon: Fingerprint, label: "Sessao do VPS" },
           ].map((badge) => (
             <div key={badge.label} className="flex items-center gap-1.5">
               <badge.icon className="w-3 h-3" style={{ color: "var(--text-muted)", opacity: 0.5 }} />
-              <span className="text-[10px]" style={{ color: "var(--text-muted)", opacity: 0.5 }}>{badge.label}</span>
+              <span className="text-[10px]" style={{ color: "var(--text-muted)", opacity: 0.5 }}>
+                {badge.label}
+              </span>
             </div>
           ))}
         </motion.div>
 
-        {/* Footer */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -369,9 +467,10 @@ export function LoginPage({ onSignIn }: LoginPageProps) {
           className="text-center mt-5 text-[10px]"
           style={{ color: "var(--text-muted)", opacity: 0.3 }}
         >
-          Desenvolvido por Davidson Brandão &copy; {new Date().getFullYear()}
+          Desenvolvido por Davidson Brandao &copy; {new Date().getFullYear()}
         </motion.p>
       </motion.div>
     </div>
   );
 }
+
