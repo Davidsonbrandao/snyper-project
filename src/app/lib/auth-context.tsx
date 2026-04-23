@@ -64,11 +64,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithOtp = useCallback(async (email: string) => {
     try {
+      const appUrl = import.meta.env.VITE_APP_URL?.trim() || window.location.origin;
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           shouldCreateUser: false,
-          emailRedirectTo: "https://app.snyper.com.br/auth/confirm",
+          emailRedirectTo: `${appUrl}/auth/confirm`,
         },
       });
 

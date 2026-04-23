@@ -1,16 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl =
-  import.meta.env.VITE_SUPABASE_URL ||
-  "https://llqtuhzbevfunwxgtthe.supabase.co";
+  import.meta.env.VITE_SUPABASE_URL?.trim() ||
+  "https://your-project.supabase.co";
 
 const supabasePublishableKey =
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-  "sb_publishable_RofTM28izhwhPMZ2088How_OGVszVSV";
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+  "sb_publishable_your_public_key";
 
 const functionBase =
-  import.meta.env.VITE_SERVER_FUNCTION_BASE ||
-  "make-server-bd920daa";
+  import.meta.env.VITE_SERVER_FUNCTION_BASE?.trim() ||
+  "make-server";
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim() || "";
 type FunctionHttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
