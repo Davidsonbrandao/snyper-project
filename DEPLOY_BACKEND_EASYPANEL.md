@@ -11,7 +11,7 @@ Ela guarda login, perfis, equipe, arquivos e dados do sistema diretamente no VPS
 
 - Tipo: `App`
 - Fonte: repositorio Git
-- Dockerfile: `server/Dockerfile`
+- Dockerfile: `Dockerfile.backend`
 - Porta interna: `3001`
 
 ## Variaveis de ambiente obrigatorias
@@ -39,7 +39,7 @@ INVITE_TTL_DAYS=7
 
 1. Crie um novo servico `App` no EasyPanel.
 2. Conecte o repositorio `snyper-project`.
-3. Configure o build usando `server/Dockerfile`.
+3. Configure o build usando `Dockerfile.backend`.
 4. Em `Domains & Proxy`, configure `api.snyper.com.br`.
 5. Em `Proxy Port`, informe `3001`.
 6. Em `Environment`, cole as variaveis acima.
@@ -80,4 +80,3 @@ Na Hostinger:
 - `UPLOAD_DIR`
 
 Se o container reiniciar sem volume, os dados locais somem. Por isso a persistencia e importante.
-

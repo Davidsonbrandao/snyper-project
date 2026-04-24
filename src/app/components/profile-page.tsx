@@ -284,7 +284,7 @@ export function ProfilePage() {
             <div className="space-y-3">
               {[
                 { label: "ID da Conta", value: <span className="font-mono px-2 py-1 rounded text-[12px]" style={{ backgroundColor: "var(--bg-hover)", color: "var(--text-primary)" }}>{user?.id?.slice(0, 8)}...</span> },
-                { label: "Metodo de login", value: "E-mail / Magic Link" },
+                { label: "Metodo de login", value: "E-mail e senha" },
                 { label: "Conta criada em", value: user?.created_at ? new Date(user.created_at).toLocaleDateString("pt-BR") : "---" },
                 { label: "Ultimo acesso", value: user?.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "---" },
               ].map((item, i, arr) => (

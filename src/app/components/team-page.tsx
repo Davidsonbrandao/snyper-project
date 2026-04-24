@@ -802,7 +802,7 @@ export function TeamPage() {
             <form onSubmit={handleSubmit} className="rounded-2xl p-6 space-y-4" style={{ backgroundColor: "var(--bg-card)", border: "2px solid var(--accent)" }}>
               <h3 className="text-[15px] mb-2" style={{ color: "var(--text-primary)", fontWeight: 500 }}>Convidar Novo Membro</h3>
               <p className="text-[12px] -mt-1" style={{ color: "var(--text-secondary)" }}>
-                O membro sera cadastrado e podera acessar o sistema via Magic Link.
+                O membro sera cadastrado e podera acessar o sistema por convite e senha.
                 Apos o cadastro, voce recebera o link de ativacao para enviar ao usuario.
               </p>
               <div className="grid grid-cols-2 gap-4">

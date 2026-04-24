@@ -32,9 +32,16 @@ Use `npm run verify` para conferir:
 - typecheck do backend
 - build do backend
 
+## Publicacao
+
+Use estes guias:
+
+- [DEPLOY_EASYPANEL_HOSTINGER.md](./DEPLOY_EASYPANEL_HOSTINGER.md)
+- [DEPLOY_BACKEND_EASYPANEL.md](./DEPLOY_BACKEND_EASYPANEL.md)
+- [CHECKLIST_GO_LIVE_EASYPANEL.md](./CHECKLIST_GO_LIVE_EASYPANEL.md)
+
 ## Observacoes
 
 - O layout nao deve ser alterado sem necessidade.
 - O login usa a API local do VPS.
 - Arquivos e dados precisam de volume persistente no deploy.
-
